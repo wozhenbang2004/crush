@@ -1,0 +1,44 @@
+name: Workspace environment regression check
+
+on:
+  push:
+    branches: [validate/workspace-bash-env]
+
+permissions:
+  contents: read
+
+env:
+  CGO_ENABLED: "0"
+  GOEXPERIMENT: greenteagc
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: e2a91e38079ce951ef82e801080bacc61ffd00d7
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - name: Confirm the regression fails before shell propagation
+        run: |
+          if go test -count=1 -v -run '^TestBashTool_WorkspaceEnvironment$' ./internal/agent/tools; then
+            echo "Expected the workspace environment regression to fail before the fix"
+            exit 1
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix/workspace-bash-env
+          persist-credentials: false
+      - name: Related package tests
+        run: go test -count=1 ./internal/shell ./internal/agent/tools ./internal/backend
+      - name: Related package vet
+        run: go vet ./internal/shell ./internal/agent/tools ./internal/backend
+      - name: Go formatting
+        run: |
+          files="internal/agent/tools/tools.go internal/agent/tools/bash.go internal/agent/tools/bash_environment_test.go internal/backend/agent.go internal/backend/agent_environment_test.go internal/shell/background.go"
+          gofmt -d $files
+          test -z "$(gofmt -l $files)"
