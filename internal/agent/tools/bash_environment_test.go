@@ -91,7 +91,7 @@ func TestBashTool_WorkspaceEnvironment(t *testing.T) {
 				require.Empty(t, stderr)
 				output = stdout
 			}
-			require.Contains(t, output, tt.want)
+			require.Equal(t, tt.want, output)
 			require.Equal(t, "server", os.Getenv("CRUSH_TEST_WORKSPACE_VALUE"))
 			require.Empty(t, os.Getenv("CRUSH_TEST_CLIENT_ONLY"))
 		})
